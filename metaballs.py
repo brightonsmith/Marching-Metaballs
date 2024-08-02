@@ -10,7 +10,6 @@ CPU_CORES = os.cpu_count()
 DEFAULT_NUM_METABALLS = 6
 GRID_RESOLUTION = 1
 
-# Function to update the positions and velocities of the metaballs
 def update_metaballs(metaballs: np.ndarray, delta_time: float):
     for i in range(metaballs.shape[0]):
         # Move the metaballs
@@ -30,11 +29,20 @@ def update_metaballs(metaballs: np.ndarray, delta_time: float):
 
             delta = metaballs[i].position - metaballs[j].position
             distance_squared = np.dot(delta, delta)
-            radius_sum_squared = metaballs[i].radius + metaballs[j].radius
-            radius_sum_squared *= radius_sum_squared
+            radius_sum = metaballs[i].radius + metaballs[j].radius
 
-            if distance_squared < radius_sum_squared:
-                metaballs[i].velocity = delta / np.max(np.abs(delta))
+            if distance_squared < radius_sum ** 2:
+                distance = np.sqrt(distance_squared)
+                overlap = radius_sum - distance
+
+                # Apply a repulsive force proportional to the overlap
+                if distance > 0:  # Avoid division by zero
+                    force = overlap * delta / distance
+                else:
+                    force = np.random.rand(2) * overlap
+
+                metaballs[i].velocity += force * 0.01  # Adjust the factor for smoothness
+                metaballs[j].velocity -= force * 0.01  # Apply opposite force to the other metaball
 
 # Function to calculate the scalar field for the metaballs
 @nb.njit(parallel=True, fastmath=True)
